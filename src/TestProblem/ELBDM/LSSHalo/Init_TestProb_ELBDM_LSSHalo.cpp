@@ -246,6 +246,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 //
 // Return      :  CM_New[]
 //-------------------------------------------------------------------------------------------------------
+
+/*
 void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const double CM_MaxR )
 {
 
@@ -293,7 +295,11 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 
       for (int PID0=0, t=0; PID0<amr->NPatchComma[lv][1]; PID0+=8, t++)    PID0List[t] = PID0;
 
-      Prepare_PatchData( lv, Time[lv], TotalDens[0][0][0], 0, amr->NPatchComma[lv][1]/8, PID0List, _TOTAL_DENS,
+      Prepare_PatchData( lv, Time[lv], TotalDens[0][0][0], NULL, 0, amr->NPatchComma[lv][1]/8, PID0List, _TOTAL_DENS, _NONE,
+                         OPT__RHO_INT_SCHEME, INT_NONE, UNIT_PATCH, NSIDE_00, IntPhase_No, OPT__BC_FLU, BC_POT_NONE,
+                         MinDens_No, MinPres_No, MinTemp_No, DE_Consistency_No );
+
+//  wrong    Prepare_PatchData( lv, Time[lv], TotalDens[0][0][0], 0, amr->NPatchComma[lv][1]/8, PID0List, _TOTAL_DENS,
                          OPT__RHO_INT_SCHEME, UNIT_PATCH, NSIDE_00, IntPhase_No, OPT__BC_FLU, BC_POT_NONE,
                          MinDens_No, MinPres_No, DE_Consistency_No );
 
@@ -379,7 +385,7 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 
 } // FUNCTION : GetCenterOfMass_Disc_Heating
 
-
+*/
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Record_Disc_Heating
@@ -395,7 +401,7 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 // Return      :  None
 //-------------------------------------------------------------------------------------------------------
 
-
+/*
 
 void Record_Disc_Heating()
 {
@@ -574,7 +580,7 @@ void Record_Disc_Heating()
 
 } // FUNCTION : Record_Disc_Heating
 
-/*
+*/
 
 void Record_Disc_Heating()
 {
@@ -710,7 +716,7 @@ void Record_Disc_Heating()
 
 } // FUNCTION : Record_Disc_Heating
 
-*/
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Disc_Heating
