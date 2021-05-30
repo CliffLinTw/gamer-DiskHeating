@@ -1,0 +1,21 @@
+# problem-specific runtime parameters
+
+Disc_Cen_X              0.0898716033380682 
+Disc_Cen_Y              0.0897436722301136 
+Disc_Cen_Z              0.0898289596354167
+Disc_BulkVel_X          0.0
+Disc_BulkVel_Y          0.0
+Disc_BulkVel_Z          0.0
+Disc_Radius             0.020865
+Disc_Decay_Radius       0.0020865
+Disc_Mass               0.027621
+Disc_Random_Seed        1002
+Rotate_File_Prof        profile.txt
+Velocity_Dispersion     0.1 
+Fix_DM                  0
+Output_Wave_Function    1
+Add_Par_When_Restart    1
+Add_Par_When_Restart_NPar  20000000
+
+
+  
