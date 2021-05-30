@@ -558,7 +558,8 @@ void Aux_TakeNote()
       fprintf( Note, "END_STEP                        %ld\n",     END_STEP         );
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "\n\n");
-
+  
+//    fprintf( Note, "Const_NewtonG                   %20.14e\n",  Const_NewtonG    );
 
 //    record the parameters of test problems
       fprintf( Note, "Parameters of Test Problems\n" );

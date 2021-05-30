@@ -10,7 +10,7 @@ EXECUTABLE := GAMER_ExtractProfile
 # siimulation options
 #######################################################################################################
 # model: HYDRO/MHD/ELBDM
-SIMU_OPTION += -DMODEL=HYDRO
+SIMU_OPTION += -DMODEL=ELBDM
 
 # double precision
 #SIMU_OPTION += -DFLOAT8
@@ -25,9 +25,9 @@ SIMU_OPTION += -DSUPPORT_HDF5
 
 # siimulation parameters
 #######################################################################################################
-NLEVEL        := 10        # level : 0 ~ NLEVEL-1
+NLEVEL        := 2         # level : 0 ~ NLEVEL-1
 NCOMP_PASSIVE := 0         # number of passive scalars
-MAX_PATCH     := 2000000   # the maximum number of patches in each level
+MAX_PATCH     := 1000000   # the maximum number of patches in each level
 
 NLEVEL        := $(strip $(NLEVEL))
 NCOMP_PASSIVE := $(strip $(NCOMP_PASSIVE))
@@ -59,7 +59,7 @@ vpath %.cpp ./ GAMER_Functions GAMER_Functions/Interpolation
 
 # rules and targets
 #######################################################################################################
-HDF5_PATH := /opt/hdf5/1.8.20
+HDF5_PATH := /software/hdf5/default
 
 CC    := icpc
 CFLAG := -O3 -w1 -g #-xSSE4.2 -fp-model precise

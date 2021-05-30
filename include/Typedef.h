@@ -61,7 +61,8 @@ const TestProbID_t
    TESTPROB_ELBDM_ISOLATED_HALO                = 1007,
    TESTPROB_ELBDM_GAUSSIAN_WAVE_PACKET         = 1008,
    TESTPROB_ELBDM_LSS                          = 1009,
-   TESTPROB_ELBDM_LSS_HALO                     = 1010;
+   TESTPROB_ELBDM_LSS_HALO                     = 1010,
+   TESTPROB_ELBDM_VEL_CONTRI                   = 1011;
 
 // program initialization options
 typedef int OptInit_t;

@@ -1,10 +1,7 @@
 #include "GAMER.h"
 #include "TestProb.h"
 
-
-
 // problem-specific global variables
-// =======================================================================================
 // =======================================================================================
 
 static double Disc_Cen[3];
@@ -90,8 +87,6 @@ void Validate()
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Validating test problem %d ... done\n", TESTPROB_ID );
 
 } // FUNCTION : Validate
-
-
 
 #if ( MODEL == ELBDM  &&  defined GRAVITY )
 //-------------------------------------------------------------------------------------------------------
@@ -199,8 +194,6 @@ void SetParameter()
 
 } // FUNCTION : SetParameter
 
-
-
 //-------------------------------------------------------------------------------------------------------
 // Function    :  SetGridIC
 // Description :  Set the problem-specific initial condition on grids
@@ -237,7 +230,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 //// Return      :  None
 ////-------------------------------------------------------------------------------------------------------
 
-/*
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -389,7 +382,7 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Record_EridanusII
+// Function    :  Record_Disc_Heating
 // Description :  Record the maximum density and center coordinates
 //
 // Note        :  1. It will also record the real and imaginary parts associated with the maximum density
@@ -401,6 +394,9 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 //
 // Return      :  None
 //-------------------------------------------------------------------------------------------------------
+
+
+
 void Record_Disc_Heating()
 {
 
@@ -576,13 +572,145 @@ void Record_Disc_Heating()
 
    delete [] recv;
 
-} // FUNCTION : Record_EridanusII
+} // FUNCTION : Record_Disc_Heating
+
+/*
+
+void Record_Disc_Heating()
+{
+
+   const char filename_max_dens[] = "Record__MaxDens";
+   const char filename_center  [] = "Record__Center";
+   const int  CountMPI            = 10;
+
+   double dens, max_dens_loc=-__DBL_MAX__, max_dens_pos_loc[3], real_loc, imag_loc;
+   double pote, min_pote_loc=+__DBL_MAX__, min_pote_pos_loc[3];
+   double send[CountMPI], (*recv)[CountMPI]=new double [MPI_NRank][CountMPI];
+
+
+// collect local data
+   for (int lv=0; lv<NLEVEL; lv++)
+   for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+   {
+//    skip non-leaf patches
+      if ( amr->patch[0][lv][PID]->son != -1 )  continue;
+
+      for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*amr->dh[lv];
+      for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*amr->dh[lv];
+      for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*amr->dh[lv];
+
+         dens = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
+         pote = amr->patch[ amr->PotSg[lv] ][lv][PID]->pot[k][j][i];
+
+         if ( dens > max_dens_loc )
+         {
+            max_dens_loc        = dens;
+            real_loc            = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[REAL][k][j][i];
+            imag_loc            = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[IMAG][k][j][i];
+            max_dens_pos_loc[0] = x;
+            max_dens_pos_loc[1] = y;
+            max_dens_pos_loc[2] = z;
+         }
+
+         if ( pote < min_pote_loc )
+         {
+            min_pote_loc        = pote;
+            min_pote_pos_loc[0] = x;
+            min_pote_pos_loc[1] = y;
+            min_pote_pos_loc[2] = z;
+         }
+      }}}
+   }
+
+
+// gather data to the root rank
+   send[0] = max_dens_loc;
+   send[1] = real_loc;
+   send[2] = imag_loc;
+   send[3] = max_dens_pos_loc[0];
+   send[4] = max_dens_pos_loc[1];
+   send[5] = max_dens_pos_loc[2];
+   send[6] = min_pote_loc;
+   send[7] = min_pote_pos_loc[0];
+   send[8] = min_pote_pos_loc[1];
+   send[9] = min_pote_pos_loc[2];
+
+   MPI_Gather( send, CountMPI, MPI_DOUBLE, recv[0], CountMPI, MPI_DOUBLE, 0, MPI_COMM_WORLD );
+
+
+// record the maximum density and center coordinates
+   double max_dens      = -__DBL_MAX__;
+   double min_pote      = +__DBL_MAX__;
+   int    max_dens_rank = -1;
+   int    min_pote_rank = -1;
+
+   if ( MPI_Rank == 0 )
+   {
+      for (int r=0; r<MPI_NRank; r++)
+      {
+         if ( recv[r][0] > max_dens )
+         {
+            max_dens      = recv[r][0];
+            max_dens_rank = r;
+         }
+
+         if ( recv[r][6] < min_pote )
+         {
+            min_pote      = recv[r][6];
+            min_pote_rank = r;
+         }
+      }
+
+      if ( max_dens_rank < 0  ||  max_dens_rank >= MPI_NRank )
+         Aux_Error( ERROR_INFO, "incorrect max_dens_rank (%d) !!\n", max_dens_rank );
+
+      if ( min_pote_rank < 0  ||  min_pote_rank >= MPI_NRank )
+         Aux_Error( ERROR_INFO, "incorrect min_pote_rank (%d) !!\n", min_pote_rank );
+
+      static bool FirstTime = true;
+
+      if ( FirstTime )
+      {
+         if ( Aux_CheckFileExist(filename_max_dens) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_max_dens );
+         else
+         {
+            FILE *file_max_dens = fopen( filename_max_dens, "w" );
+            fprintf( file_max_dens, "#%19s   %10s   %14s   %14s   %14s\n", "Time", "Step", "Dens", "Real", "Imag" );
+            fclose( file_max_dens );
+         }
+
+         if ( Aux_CheckFileExist(filename_center) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_center );
+         else
+         {
+            FILE *file_center = fopen( filename_center, "w" );
+            fprintf( file_center, "#%19s  %10s  %14s  %14s  %14s  %14s  %14s  %14s  %14s  %14s  %10s  %14s  %14s  %14s\n",
+                     "Time", "Step", "Dens", "Dens_x", "Dens_y", "Dens_z", "Pote", "Pote_x", "Pote_y", "Pote_z",
+                     "NIter", "CM_x", "CM_y", "CM_z" );
+            fclose( file_center );
+         }
+
+         FirstTime = false;
+      }
+
+      FILE *file_max_dens = fopen( filename_max_dens, "a" );
+      fprintf( file_max_dens, "%20.14e   %10ld   %14.7e   %14.7e   %14.7e\n",
+               Time[0], Step, recv[max_dens_rank][0], recv[max_dens_rank][1], recv[max_dens_rank][2] );
+      fclose( file_max_dens );
+
+      FILE *file_center = fopen( filename_center, "a" );
+      fprintf( file_center, "%20.14e  %10ld  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e\n",
+               Time[0], Step, recv[max_dens_rank][0], recv[max_dens_rank][3], recv[max_dens_rank][4], recv[max_dens_rank][5],
+                              recv[min_pote_rank][6], recv[min_pote_rank][7], recv[min_pote_rank][8], recv[min_pote_rank][9] );
+      fclose( file_center );
+   } // if ( MPI_Rank == 0 )
+
+   delete [] recv;
+
+} // FUNCTION : Record_Disc_Heating
 
 */
-
-
-
-
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Disc_Heating
@@ -639,6 +767,9 @@ void Par_Disc_Heating(const long NPar_ThisRank, const long NPar_AllRank, real *P
         RanV = sqrt(G*RanM/RanR);
         Vec2_FixRadius( RanR, RanVec, NormVec, RanV );
         for (int d = 0; d < 3; d++) Pos_AllRank[d][p] = RanVec[d] + Disc_Cen[d];
+
+//        if (RanVec[0] < 0)
+//           Mass_AllRank[p] = ParM/100.0;
 
 //      velocity
         for (int d = 0; d< 3; d++) Vel_AllRank[d][p] = NormVec[d]+Disc_BulkVel[d];
@@ -703,13 +834,8 @@ void Par_Disc_Heating(const long NPar_ThisRank, const long NPar_AllRank, real *P
          }
       }
 
-
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
-
-
 }
-
-
 
 void Par_AfterAcceleration(const long NPar_ThisRank, const long NPar_AllRank, real *ParMass,
                                             real *ParPosX, real *ParPosY, real *ParPosZ,
@@ -883,7 +1009,7 @@ void Init_Disc()
          Mass_AllRank[p] = ParM;
 
 //       label
-         Label_AllRank[p] = p;
+         Label_AllRank[p] = 0;
 
 //       position
          Ran  = RNG->GetValue( 0, 0.0, 1.0);
@@ -893,6 +1019,9 @@ void Init_Disc()
          Vec2_FixRadius( RanR, RanVec, NormVec, RanV );
          for (int d = 0; d < 3; d++) Pos_AllRank[d][p] = RanVec[d] + Disc_Cen[d];
 
+         //if (RanVec[0] < 0)
+         //   Mass_AllRank[p] = ParM/100.0;
+         //   Label_AllRank[p] = 2;
 //       velocity
          for (int d = 0; d< 3; d++) Vel_AllRank[d][p] = Disc_BulkVel[d];
       } // for ( long p = 0; p < NPar_AllRank; p++)
@@ -980,15 +1109,12 @@ void Init_TestProb_ELBDM_LSSHalo()
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
-
 // validate the compilation flags and runtime parameters
    Validate();
-
 
 #  if ( MODEL == ELBDM  &&  defined GRAVITY )
 // set the problem-specific runtime parameters
    SetParameter();
-
 
 //   Init_Function_User_Ptr      = SetGridIC;
    Init_Function_User_Ptr      = NULL;
@@ -996,7 +1122,7 @@ void Init_TestProb_ELBDM_LSSHalo()
    Flag_User_Ptr               = NULL;
    Mis_GetTimeStep_User_Ptr    = NULL;
    BC_User_Ptr                 = NULL;
-   Aux_Record_User_Ptr         = NULL; //Record_Disc_Heating;
+   Aux_Record_User_Ptr         = Record_Disc_Heating;
    End_User_Ptr                = NULL;
 //#  ifdef GRAVITY
 //   Init_ExternalAcc_Ptr        = NULL;
@@ -1008,7 +1134,6 @@ void Init_TestProb_ELBDM_LSSHalo()
    Init_User_Ptr               = Init_Disc;
 #  endif
 #  endif // if ( MODEL == ELBDM  &&  defined GRAVITY )
-
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 

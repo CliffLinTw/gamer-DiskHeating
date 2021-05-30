@@ -73,7 +73,8 @@ do
 
 
 #  example for setting all parameters manually
-   ./GAMER_ExtractProfile -i $FILE_IN -o "$SUFFIX" -S -a 1 -m 8 -p -r 0.10 -x 0.54 -y 0.64 -z 1.40
+#   ./GAMER_ExtractProfile -i $FILE_IN -o "$SUFFIX" -S -a 1 -m 1 -r 0.09 -x 0.09 -y 0.09 -z 0.09 -L 1.30 -c -V -g -G 3.3840321e-02
+   ./GAMER_ExtractProfile -i $FILE_IN -o "$SUFFIX" -S -a 1 -m 1 -r 0.0900635 -x 0.0900635 -y 0.0900635 -z 0.0900635 -n -L 1.30 -c -V -g -G 3.3840321e-02
 
 
    ErrorCode=$?
