@@ -10,6 +10,8 @@ static double Disc_Decay_R;
 static double Disc_Radius;
 static double Disc_Mass;
 static int    Disc_RSeed;
+static double Disc_CM_MaxR;      // maximum radius for determining CM
+static double Disc_CM_TolErrR;   // maximum allowed errors for determining CM
 static double VelDisp;
 static int Idx_ParLabel = Idx_Undefined;
 bool FixDM;
@@ -132,6 +134,8 @@ void SetParameter()
    ReadPara->Add( "Disc_Decay_Radius",    &Disc_Decay_R,          1.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Disc_Mass",            &Disc_Mass,             1.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Disc_Random_Seed",     &Disc_RSeed,            123,           0,                NoMax_int         );
+   ReadPara->Add( "Disc_CM_MaxR",         &Disc_CM_MaxR,         -1.0,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "Disc_CM_TolErrR",      &Disc_CM_TolErrR,      -1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "Velocity_Dispersion",  &VelDisp,               0.0,           0.0,              1.0               );
    ReadPara->Add( "Fix_DM",               &FixDM,                true,          Useless_bool,      Useless_bool      );
    ReadPara->Add( "Output_Wave_Function", &OutputWaveFunction,   true,          Useless_bool,      Useless_bool      );
@@ -143,6 +147,7 @@ void SetParameter()
    delete ReadPara;
 
 // (1-2) set the default values
+   if ( Disc_CM_TolErrR < 0.0 )  Disc_CM_TolErrR = 1.0*amr->dh[MAX_LEVEL];
 
 // (1-3) check the runtime parameters
    if ( OPT__INIT == INIT_BY_FUNCTION )
@@ -180,6 +185,8 @@ void SetParameter()
       Aux_Message( stdout, "  disc radius                 = %13.7e\n",                     Disc_Radius        );
       Aux_Message( stdout, "  disc mass                   = %13.7e\n",                     Disc_Mass          );
       Aux_Message( stdout, "  disc random seed            = %d\n",                         Disc_RSeed         );
+      Aux_Message( stdout, "  CM max radius               = %13.6e\n",                     Disc_CM_MaxR       );
+      Aux_Message( stdout, "  CM tolerated error          = %13.6e\n",                     Disc_CM_TolErrR    );
       Aux_Message( stdout, "  velocity dispersion         = %13.7e\n",                     VelDisp            );
       Aux_Message( stdout, "  fix DM                      = %d\n",                         FixDM              );
       Aux_Message( stdout, "  output wavefunction         = %d\n",                         OutputWaveFunction );
@@ -238,7 +245,6 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
    const bool   IntPhase_No       = false;
    const real   MinDens_No        = -1.0;
    const real   MinPres_No        = -1.0;
-   const real   MinTemp_No        = -1.0;
    const bool   DE_Consistency_No = false;
 #  ifdef PARTICLE
    const bool   TimingSendPar_No  = false;
@@ -279,7 +285,7 @@ void GetCenterOfMass_Disc_Heating( const double CM_Old[], double CM_New[], const
 
       Prepare_PatchData( lv, Time[lv], TotalDens[0][0][0], NULL, 0, amr->NPatchComma[lv][1]/8, PID0List, _TOTAL_DENS, _NONE,
                          OPT__RHO_INT_SCHEME, INT_NONE, UNIT_PATCH, NSIDE_00, IntPhase_No, OPT__BC_FLU, BC_POT_NONE,
-                         MinDens_No, MinPres_No, MinTemp_No, DE_Consistency_No );
+                         MinDens_No, MinPres_No, DE_Consistency_No );
 
       delete [] PID0List;
 
@@ -847,7 +853,7 @@ void Record_Disc_Heating()
    } // if ( MPI_Rank == 0 )
 
    // compute the center of mass until convergence
-      const double TolErrR2 = SQR( Soliton_CM_TolErrR );
+      const double TolErrR2 = SQR( Disc_CM_TolErrR );
       const int    NIterMax = 10;
 
       double dR2, CM_Old[3], CM_New[3];
@@ -861,7 +867,7 @@ void Record_Disc_Heating()
 
       while ( true )
       {
-         GetCenterOfMass_Disc_Heating( CM_Old, CM_New, Soliton_CM_MaxR );
+         GetCenterOfMass_Disc_Heating( CM_Old, CM_New, Disc_CM_MaxR );
 
          dR2 = SQR( CM_Old[0] - CM_New[0] )
              + SQR( CM_Old[1] - CM_New[1] )
@@ -877,15 +883,13 @@ void Record_Disc_Heating()
       if ( MPI_Rank == 0 )
       {
          if ( dR2 > TolErrR2 )
-            Aux_Message( stderr, "WARNING : dR (%13.7e) > Soliton_CM_TolErrR (%13.7e) !!\n", sqrt(dR2), \ );
+            Aux_Message( stderr, "WARNING : dR (%13.7e) > Disc_CM_TolErrR (%13.7e) !!\n", sqrt(dR2), Disc_CM_TolErrR );
 
          FILE *file_center = fopen( filename_center, "a" );
          fprintf( file_center, "  %10d  %14.7e  %14.7e  %14.7e\n", NIter, CM_New[0], CM_New[1], CM_New[2] );
          fclose( file_center );
       }
 
-
-      for (int d=0; d<3; d++)    Tidal_CM[d] = CM_New[d];
 
    delete [] recv;
 
